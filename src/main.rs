@@ -1,7 +1,8 @@
 extern crate futures;
 extern crate hyper;
 
-pub mod request_handlers;
+pub mod post_handlers;
+pub mod get_handlers;
 
 #[macro_use]
 extern crate log;
@@ -10,11 +11,13 @@ extern crate env_logger;
 use futures::{future, future::Future, Stream};
 use hyper::{
     server::{Request, Response, Service},
-    Method::Post,
+    Method::{Get, Post},
     StatusCode,
 };
 
-use crate::request_handlers::{make_post_response, parse_form, write_to_db};
+use post_handlers::make_error_response;
+
+use crate::post_handlers::{make_post_response, parse_form, write_to_db};
 
 struct Microservice;
 impl Service for Microservice {
@@ -34,6 +37,20 @@ impl Service for Microservice {
                     .and_then(write_to_db)
                     .then(make_post_response);
                 Box::new(future)
+            }
+            (&Get, "/") => {
+                let time_range = match req.query() {
+                    Some(query ) => parse_query(query),
+                    None => Ok(TimeRanage {
+                        before: None,
+                        after: None
+                    }),
+                };
+                let response = match time_range {
+                    Ok(time_range) => make_get_response(query_db(time_range)),
+                    Err(err ) => make_error_response(err)
+                };
+                Box::new(response)
             }
             _ => Box::new(future::ok(
                 Response::new().with_status(StatusCode::NotFound),
