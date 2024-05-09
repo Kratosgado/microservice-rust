@@ -1,9 +1,17 @@
 extern crate futures;
 extern crate hyper;
 
-pub mod post_handlers;
 pub mod get_handlers;
+pub mod models;
+pub mod post_handlers;
+pub mod schema;
 
+#[macro_use]
+extern crate serde;
+#[macro_use]
+extern crate serde_json;
+#[macro_use]
+extern crate diesel;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
@@ -40,15 +48,15 @@ impl Service for Microservice {
             }
             (&Get, "/") => {
                 let time_range = match req.query() {
-                    Some(query ) => parse_query(query),
+                    Some(query) => parse_query(query),
                     None => Ok(TimeRanage {
                         before: None,
-                        after: None
+                        after: None,
                     }),
                 };
                 let response = match time_range {
                     Ok(time_range) => make_get_response(query_db(time_range)),
-                    Err(err ) => make_error_response(err)
+                    Err(err) => make_error_response(err),
                 };
                 Box::new(response)
             }

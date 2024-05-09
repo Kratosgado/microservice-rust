@@ -7,13 +7,7 @@ pub struct TimeRange {
     pub before: Option<i64>,
     pub after: Option<i64>,
 }
-#[derive(Serialize, Debug)]
-pub struct  Message {
-    pub id: i32,
-    pub username: String,
-    pub message: String,
-    pub timestamp: i64,
-}
+
 pub fn parse_query(query: &str) -> Result<TimeRange, String> {
     let args = url::form_urlencoded::parse(&query.as_bytes())
         .into_owned().collect::<HashMap<String, String>>();
