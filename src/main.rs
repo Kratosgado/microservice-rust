@@ -7,10 +7,9 @@ pub mod models;
 pub mod post_handlers;
 pub mod schema;
 
+
 #[macro_use]
 extern crate serde;
-#[macro_use]
-extern crate serde_json;
 #[macro_use]
 extern crate diesel;
 #[macro_use]
@@ -39,10 +38,12 @@ impl Service for Microservice {
 
     fn call(&self, req: Request) -> Self::Future {
         let mut db_conn = match connect_to_db() {
-            Some(conn ) =>conn,
-            None => return Box::new(future::ok(
-                Response::new().with_status(StatusCode::InternalServerError),
-            )),
+            Some(conn) => conn,
+            None => {
+                return Box::new(future::ok(
+                    Response::new().with_status(StatusCode::InternalServerError),
+                ))
+            }
         };
 
         match (req.method(), req.path()) {

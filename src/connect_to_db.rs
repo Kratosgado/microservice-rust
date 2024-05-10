@@ -2,7 +2,7 @@ use std::env;
 
 use diesel::{Connection, PgConnection};
 
-const DEFAULT_DATABASE_URL: &'static str = "postgresql://postgres@localhost:5432";
+const DEFAULT_DATABASE_URL: &'static str = "postgres://postgres:postgres@localhost:5432/postgres";
 
 pub fn connect_to_db() -> Option<PgConnection> {
     let database_url = env::var("DATABASE_URL").unwrap_or(String::from(DEFAULT_DATABASE_URL));
