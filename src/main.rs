@@ -1,6 +1,7 @@
 extern crate futures;
 extern crate hyper;
 
+pub mod connect_to_db;
 pub mod get_handlers;
 pub mod models;
 pub mod post_handlers;
@@ -16,6 +17,7 @@ extern crate diesel;
 extern crate log;
 extern crate env_logger;
 
+use connect_to_db::connect_to_db;
 use futures::{future, future::Future, Stream};
 use hyper::{
     server::{Request, Response, Service},
@@ -35,6 +37,13 @@ impl Service for Microservice {
     type Future = Box<dyn Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, req: Request) -> Self::Future {
+        let db_conn = match connect_to_db() {
+            Some(conn ) =>conn,
+            None => return Box::new(future::ok(
+                Response::new().with_status(StatusCode::InternalServerError),
+            )),
+        };
+
         match (req.method(), req.path()) {
             (&Post, "/") => {
                 info!("Received a POST request to '/'");
@@ -42,7 +51,7 @@ impl Service for Microservice {
                     .body()
                     .concat2()
                     .and_then(parse_form)
-                    .and_then(write_to_db)
+                    .and_then(move |new_message| write_to_db(new_message, &mut db_conn))
                     .then(make_post_response);
                 Box::new(future)
             }
