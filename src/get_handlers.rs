@@ -1,7 +1,10 @@
 use std::{collections::HashMap};
+use diesel::prelude::*;
 use futures::future::{self, FutureResult};
 use hyper::{header::ContentLength, Response};
 use serde::Serialize;
+
+use crate::models::Message;
 
 pub struct TimeRange {
     pub before: Option<i64>,
@@ -43,4 +46,35 @@ pub fn make_get_response( messages: Option<Vec<Message>>) -> FutureResult<hyper:
     };
     debug!("{:?}", response);
     future::ok(response)
+}
+
+pub fn query_db(time_range: TimeRange, db_conn: &mut PgConnection) -> Option<Vec<Message>> {
+    use crate::schema::messages;
+    let TimeRange { before, after } = time_range;
+    let query_result = match (before, after ) {
+      (Some(before), Some(after )) => {
+        messages::table
+            .filter(messages::timestamp.lt(before as i64))  
+            .filter(messages::timestamp.gt(after as i64))
+            .load::<Message>(db_conn)
+      }
+      (Some(before), _) => {
+        messages::table
+            .filter(messages::timestamp.lt(before as i64))
+            .load::<Message>(db_conn)
+    }
+    (_, Some(after)) => {
+        messages::table
+            .filter(messages::timestamp.gt(after as i64))
+            .load::<Message>(db_conn)
+    }
+    _ => messages::table.load::<Message>(db_conn),
+    };
+    match query_result {
+        Ok(messages) => Some(messages),
+        Err(err) => {
+            error!("Error querying database: {}", err);
+            None
+        }
+    }
 }

@@ -19,6 +19,7 @@ extern crate env_logger;
 
 use connect_to_db::connect_to_db;
 use futures::{future, future::Future, Stream};
+use get_handlers::{make_get_response, parse_query, query_db, TimeRange};
 use hyper::{
     server::{Request, Response, Service},
     Method::{Get, Post},
@@ -37,7 +38,7 @@ impl Service for Microservice {
     type Future = Box<dyn Future<Item = Self::Response, Error = Self::Error>>;
 
     fn call(&self, req: Request) -> Self::Future {
-        let db_conn = match connect_to_db() {
+        let mut db_conn = match connect_to_db() {
             Some(conn ) =>conn,
             None => return Box::new(future::ok(
                 Response::new().with_status(StatusCode::InternalServerError),
@@ -58,14 +59,14 @@ impl Service for Microservice {
             (&Get, "/") => {
                 let time_range = match req.query() {
                     Some(query) => parse_query(query),
-                    None => Ok(TimeRanage {
+                    None => Ok(TimeRange {
                         before: None,
                         after: None,
                     }),
                 };
                 let response = match time_range {
-                    Ok(time_range) => make_get_response(query_db(time_range)),
-                    Err(err) => make_error_response(err),
+                    Ok(time_range) => make_get_response(query_db(time_range, &mut db_conn)),
+                    Err(err) => make_error_response(err.as_str()),
                 };
                 Box::new(response)
             }
