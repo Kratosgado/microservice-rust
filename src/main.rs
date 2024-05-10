@@ -7,7 +7,6 @@ pub mod models;
 pub mod post_handlers;
 pub mod schema;
 
-
 #[macro_use]
 extern crate serde;
 #[macro_use]
